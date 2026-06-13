@@ -22,6 +22,12 @@ export interface CloverLineItem {
   [key: string]: unknown;
 }
 
+export interface CloverOrderPayments {
+  /** Clover wraps list results in an `elements` array. */
+  elements?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
 /**
  * Create a new open order for the given merchant.
  * Returns the created order, including its `id`.
@@ -69,5 +75,26 @@ export async function addLineItem(
       name: name || "Test Item",
       price: priceInCents,
     },
+  });
+}
+
+/**
+ * Fetch payment information recorded against an order (platform / v3 REST API).
+ *
+ * Used to confirm payment status after paying, independent of the pay
+ * response. Returns Clover's payments list (entries under `elements`).
+ */
+export async function getOrderPayments(
+  merchantId: string,
+  orderId: string,
+  accessToken: string
+): Promise<CloverOrderPayments> {
+  const { platformBaseUrl } = getCloverConfig();
+
+  return cloverRequest<CloverOrderPayments>({
+    baseUrl: platformBaseUrl,
+    path: `/v3/merchants/${merchantId}/orders/${orderId}/payments`,
+    accessToken,
+    method: "GET",
   });
 }

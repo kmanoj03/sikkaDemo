@@ -1,7 +1,11 @@
 import { Router } from "express";
 
 import { getEcommerceToken, getMerchantCredentials } from "../utils/cloverAuth";
-import { addLineItem, createCloverOrder } from "../handlers/cloverOrders";
+import {
+  addLineItem,
+  createCloverOrder,
+  getOrderPayments,
+} from "../handlers/cloverOrders";
 import { payForOrder } from "../handlers/cloverPayments";
 import { mintDemoSource } from "../handlers/cloverTokens";
 import { getCloverConfig } from "../utils/cloverConfig";
@@ -86,6 +90,21 @@ router.post("/orders/:orderId/pay", async (req, res, next) => {
       source
     );
     res.json({ success: true, payment });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /api/clover/orders/:orderId/payments -> payment status for an order. */
+router.get("/orders/:orderId/payments", async (req, res, next) => {
+  try {
+    const { merchantId, accessToken } = await getMerchantCredentials();
+    const payments = await getOrderPayments(
+      merchantId,
+      req.params.orderId,
+      accessToken
+    );
+    res.json({ success: true, payments });
   } catch (err) {
     next(err);
   }
