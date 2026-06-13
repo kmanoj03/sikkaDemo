@@ -27,10 +27,11 @@ export class CloverApiError extends Error {
 export interface CloverRequestOptions {
   baseUrl: string;
   path: string;
-  accessToken: string;
+  /** Bearer token. Optional: the tokenizer authenticates via the apikey header instead. */
+  accessToken?: string;
   method?: Method;
   data?: unknown;
-  /** Extra headers (e.g. User-Agent / x-forwarded-for for the pay endpoint). */
+  /** Extra headers (e.g. apikey for the tokenizer, User-Agent for the pay endpoint). */
   headers?: Record<string, string>;
 }
 
@@ -45,7 +46,7 @@ export async function cloverRequest<T = unknown>(
     method,
     data,
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       "Content-Type": "application/json",
       ...headers,
     },

@@ -1,7 +1,10 @@
 import { Router } from "express";
 
-import { getMerchantCredentials } from "../utils/cloverAuth";
+import { getEcommerceToken, getMerchantCredentials } from "../utils/cloverAuth";
 import { addLineItem, createCloverOrder } from "../handlers/cloverOrders";
+import { payForOrder } from "../handlers/cloverPayments";
+import { mintDemoSource } from "../handlers/cloverTokens";
+import { getCloverConfig } from "../utils/cloverConfig";
 import { dollarsToCents } from "../utils/money";
 
 /**
@@ -47,6 +50,42 @@ router.post("/orders/:orderId/line-items", async (req, res, next) => {
       dollarsToCents(amount)
     );
     res.json({ success: true, lineItem });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/clover/orders/:orderId/pay -> pay for an order with a source token.
+ * Body: { amount: number (dollars), sourceToken?: string }
+ * Falls back to CLOVER_TEST_SOURCE when no sourceToken is provided.
+ */
+router.post("/orders/:orderId/pay", async (req, res, next) => {
+  try {
+    const { amount, sourceToken } = req.body as {
+      amount?: number;
+      sourceToken?: string;
+    };
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return res
+        .status(400)
+        .json({ message: "amount (in dollars) must be a number greater than 0" });
+    }
+
+    // Source preference: explicit token (e.g. from the iframe) > static
+    // override > a freshly minted demo token (test-token path).
+    const source =
+      sourceToken || getCloverConfig().testSource || (await mintDemoSource());
+
+    const ecommerceToken = await getEcommerceToken();
+    const payment = await payForOrder(
+      req.params.orderId,
+      ecommerceToken,
+      dollarsToCents(amount),
+      source
+    );
+    res.json({ success: true, payment });
   } catch (err) {
     next(err);
   }

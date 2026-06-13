@@ -37,3 +37,27 @@ export async function getMerchantCredentials(): Promise<MerchantCredentials> {
       "complete the OAuth connect flow."
   );
 }
+
+/**
+ * Resolves the Bearer token for Clover's ecommerce API (pay/charges).
+ *
+ * The ecommerce host rejects the platform dashboard API token, so in
+ * test-token mode we use a dedicated Ecommerce API private key. An OAuth
+ * access token works on both hosts, so OAuth mode (later) can reuse the same
+ * token returned by getMerchantCredentials().
+ */
+export async function getEcommerceToken(): Promise<string> {
+  const config = getCloverConfig();
+
+  // In OAuth mode, the stored access token will be returned here first.
+
+  if (config.ecommercePrivateKey) {
+    return config.ecommercePrivateKey;
+  }
+
+  throw new Error(
+    "No Clover ecommerce token available. Set CLOVER_ECOMMERCE_PRIVATE_KEY in " +
+      "server/.env (Clover sandbox dashboard -> Ecommerce API tokens -> private " +
+      "key), or complete the OAuth connect flow."
+  );
+}
