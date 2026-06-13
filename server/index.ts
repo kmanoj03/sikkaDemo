@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 
 import { readTransactions } from "./utils/transactionLog";
+import cloverRoutes from "./routes/clover";
 
 const app = express();
 app.use(express.json());
@@ -22,6 +23,8 @@ app.get("/api/transactions", async (_req, res, next) => {
     next(err);
   }
 });
+
+app.use("/api/clover", cloverRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
