@@ -3,6 +3,7 @@ import express from "express";
 
 import { readTransactions } from "./utils/transactionLog";
 import cloverRoutes from "./routes/clover";
+import checkoutRoutes from "./routes/checkout";
 import { CloverApiError } from "./utils/cloverHttp";
 
 const app = express();
@@ -26,6 +27,7 @@ app.get("/api/transactions", async (_req, res, next) => {
 });
 
 app.use("/api/clover", cloverRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 /** Central error handler: surfaces Clover error details instead of a stack trace. */
 app.use(
