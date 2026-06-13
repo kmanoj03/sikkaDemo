@@ -5,7 +5,6 @@ import { cloverRequest } from "../utils/cloverHttp";
  * Clover order operations (platform / v3 REST API).
  *
  * Custom-order workflow step 1: create an order object in the "open" state.
- * Line items are added afterwards (next level), then the order is paid.
  */
 
 export interface CloverOrder {
@@ -13,6 +12,13 @@ export interface CloverOrder {
   state?: string;
   title?: string;
   total?: number;
+  [key: string]: unknown;
+}
+
+export interface CloverLineItem {
+  id: string;
+  name?: string;
+  price?: number;
   [key: string]: unknown;
 }
 
@@ -35,6 +41,33 @@ export async function createCloverOrder(
     data: {
       state: "open",
       title,
+    },
+  });
+}
+
+/**
+ * Custom-order workflow step 2: add a custom line item to an existing order.
+ *
+ * `priceInCents` must already be in cents (use dollarsToCents at the boundary).
+ * Clover stores line item prices as integer cents.
+ */
+export async function addLineItem(
+  merchantId: string,
+  orderId: string,
+  accessToken: string,
+  name: string,
+  priceInCents: number
+): Promise<CloverLineItem> {
+  const { platformBaseUrl } = getCloverConfig();
+
+  return cloverRequest<CloverLineItem>({
+    baseUrl: platformBaseUrl,
+    path: `/v3/merchants/${merchantId}/orders/${orderId}/line_items`,
+    accessToken,
+    method: "POST",
+    data: {
+      name: name || "Test Item",
+      price: priceInCents,
     },
   });
 }
