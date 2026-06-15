@@ -7,7 +7,7 @@ import {
   type CheckoutResponse,
   type Transaction,
 } from "./api";
-import { CheckoutForm, type CheckoutFormValues } from "./components/CheckoutForm";
+import { CheckoutCard, type PayValues } from "./components/CheckoutCard";
 import { ResultPanel } from "./components/ResultPanel";
 import { TransactionList } from "./components/TransactionList";
 
@@ -36,12 +36,12 @@ export default function App() {
     void loadTransactions();
   }, [loadTransactions]);
 
-  async function handleCheckout(values: CheckoutFormValues) {
+  async function handleCheckout(values: PayValues, sourceToken?: string) {
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const res = await checkout(values);
+      const res = await checkout({ ...values, sourceToken });
       setResult(res);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong.");
@@ -74,13 +74,7 @@ export default function App() {
 
       <main className="grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
         <section className={`${cardClass} md:sticky md:top-6`}>
-          <div className="mb-4.5">
-            <h2 className="m-0 text-lg font-bold">New payment</h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-              Create an order, add a line item, and charge it through Clover.
-            </p>
-          </div>
-          <CheckoutForm loading={loading} onSubmit={handleCheckout} />
+          <CheckoutCard loading={loading} onPay={handleCheckout} />
         </section>
 
         <div className="flex flex-col gap-5">
@@ -92,7 +86,7 @@ export default function App() {
       </main>
 
       <footer className="mt-8 text-center text-[12px] text-indigo-300/70">
-        Frontend never touches card data or Clover secrets — it only calls the
+        Frontend never touches card data or Clover secrets - it only calls the
         backend.
       </footer>
     </div>

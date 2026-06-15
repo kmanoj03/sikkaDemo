@@ -27,6 +27,8 @@ export interface CloverConfig {
   oauthBaseUrl: string;
   /** Base URL for the card tokenizer (mints clv_ source tokens). */
   tokenizerBaseUrl: string;
+  /** Base URL that serves the hosted-iframe SDK (sdk.js) used by the frontend. */
+  checkoutBaseUrl: string;
 
   /** OAuth app credentials (used by the connect flow, added in a later level). */
   clientId?: string;
@@ -62,12 +64,14 @@ const DEFAULT_BASE_URLS: Record<CloverEnv, Omit<CloverConfig, "env" | "clientId"
     ecommerceBaseUrl: "https://scl-sandbox.dev.clover.com",
     oauthBaseUrl: "https://sandbox.dev.clover.com",
     tokenizerBaseUrl: "https://token-sandbox.dev.clover.com",
+    checkoutBaseUrl: "https://checkout.sandbox.dev.clover.com",
   },
   production: {
     platformBaseUrl: "https://api.clover.com",
     ecommerceBaseUrl: "https://scl.clover.com",
     oauthBaseUrl: "https://www.clover.com",
     tokenizerBaseUrl: "https://token.clover.com",
+    checkoutBaseUrl: "https://checkout.clover.com",
   },
 };
 
@@ -85,6 +89,7 @@ export function getCloverConfig(): CloverConfig {
     ecommerceBaseUrl: process.env.CLOVER_ECOMMERCE_BASE_URL || defaults.ecommerceBaseUrl,
     oauthBaseUrl: process.env.CLOVER_OAUTH_BASE_URL || defaults.oauthBaseUrl,
     tokenizerBaseUrl: process.env.CLOVER_TOKENIZER_BASE_URL || defaults.tokenizerBaseUrl,
+    checkoutBaseUrl: process.env.CLOVER_CHECKOUT_BASE_URL || defaults.checkoutBaseUrl,
 
     clientId: process.env.CLOVER_CLIENT_ID,
     clientSecret: process.env.CLOVER_CLIENT_SECRET,

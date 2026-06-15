@@ -17,6 +17,21 @@ import { dollarsToCents } from "../utils/money";
  */
 const router = Router();
 
+/**
+ * GET /api/clover/public-config -> browser-safe config for the hosted iframe.
+ * Returns only the public key + merchant id + SDK url. The private key and
+ * access tokens never leave the server.
+ */
+router.get("/public-config", (_req, res) => {
+  const { ecommercePublicKey, merchantId, checkoutBaseUrl } = getCloverConfig();
+  res.json({
+    publicKey: ecommercePublicKey ?? null,
+    merchantId: merchantId ?? null,
+    sdkUrl: `${checkoutBaseUrl}/sdk.js`,
+    cardEntryEnabled: Boolean(ecommercePublicKey && merchantId),
+  });
+});
+
 /** POST /api/clover/orders -> create a new open order for the merchant. */
 router.post("/orders", async (_req, res, next) => {
   try {
