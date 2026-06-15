@@ -3,11 +3,15 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
   checkout,
+  disconnect,
+  fetchConnection,
   fetchTransactions,
   type CheckoutResponse,
+  type ConnectionInfo,
   type Transaction,
 } from "./api";
 import { CheckoutCard, type PayValues } from "./components/CheckoutCard";
+import { ConnectionStatus } from "./components/ConnectionStatus";
 import { ResultPanel } from "./components/ResultPanel";
 import { TransactionList } from "./components/TransactionList";
 
@@ -21,6 +25,28 @@ export default function App() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnLoading, setTxnLoading] = useState(true);
+
+  const [connection, setConnection] = useState<ConnectionInfo | null>(null);
+  const [justConnected, setJustConnected] = useState(
+    () => new URLSearchParams(window.location.search).get("connected") === "1"
+  );
+
+  useEffect(() => {
+    fetchConnection()
+      .then(setConnection)
+      .catch(() => setConnection(null));
+  }, []);
+
+  async function handleDisconnect() {
+    try {
+      await disconnect();
+    } catch {
+      // Ignore; we re-sync from the server below regardless.
+    }
+    setJustConnected(false);
+    const next = await fetchConnection().catch(() => null);
+    setConnection(next);
+  }
 
   const loadTransactions = useCallback(async () => {
     try {
@@ -67,10 +93,27 @@ export default function App() {
             </p>
           </div>
         </div>
-        <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold tracking-[0.08em] text-indigo-100">
-          SANDBOX
-        </span>
+        <div className="flex items-center gap-2.5">
+          <ConnectionStatus info={connection} onDisconnect={handleDisconnect} />
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold tracking-[0.08em] text-indigo-100">
+            SANDBOX
+          </span>
+        </div>
       </header>
+
+      {justConnected && (
+        <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-[13px] text-emerald-200">
+          <span>Clover account connected via OAuth. Payments now use the merchant's access token.</span>
+          <button
+            type="button"
+            onClick={() => setJustConnected(false)}
+            className="text-emerald-300/80 hover:text-emerald-200"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <main className="grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
         <section className={`${cardClass} md:sticky md:top-6`}>

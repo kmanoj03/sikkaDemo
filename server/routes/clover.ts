@@ -8,8 +8,16 @@ import {
 } from "../handlers/cloverOrders";
 import { payForOrder } from "../handlers/cloverPayments";
 import { mintDemoSource } from "../handlers/cloverTokens";
+import {
+  buildAuthorizeUrl,
+  exchangeCodeForTokens,
+  storeTokensForMerchant,
+} from "../handlers/cloverOauth";
 import { getCloverConfig } from "../utils/cloverConfig";
+import { clearCredentials, getCredential } from "../utils/oauthStore";
 import { dollarsToCents } from "../utils/money";
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 /**
  * Clover routes For now: create an order, so we can
@@ -30,6 +38,76 @@ router.get("/public-config", (_req, res) => {
     sdkUrl: `${checkoutBaseUrl}/sdk.js`,
     cardEntryEnabled: Boolean(ecommercePublicKey && merchantId),
   });
+});
+
+/**
+ * GET /api/clover/oauth/connect
+ *
+ * Single entry point that matches the Clover app's configured launch path.
+ * Clover redirects the merchant here, and with "Default OAuth Response: CODE"
+ * it appends ?merchant_id=...&code=... once the merchant approves.
+ *
+ *   - No code yet   -> start the flow by redirecting to Clover's authorize page.
+ *   - code present  -> exchange it for tokens, store them, return to the UI.
+ */
+router.get("/oauth/connect", async (req, res, next) => {
+  try {
+    const code = typeof req.query.code === "string" ? req.query.code : "";
+    const merchantId =
+      typeof req.query.merchant_id === "string" ? req.query.merchant_id : "";
+
+    if (!code) {
+      return res.redirect(buildAuthorizeUrl());
+    }
+
+    if (!merchantId) {
+      return res
+        .status(400)
+        .send("Missing merchant_id in OAuth callback.");
+    }
+
+    const tokens = await exchangeCodeForTokens(code);
+    await storeTokensForMerchant(merchantId, tokens);
+
+    res.redirect(`${FRONTEND_URL}/?connected=1`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /api/clover/connection -> current auth mode (oauth | test | none). */
+router.get("/connection", async (_req, res, next) => {
+  try {
+    const oauth = await getCredential();
+    const config = getCloverConfig();
+    const mode = oauth
+      ? "oauth"
+      : config.merchantId && config.testAccessToken
+        ? "test"
+        : "none";
+
+    res.json({
+      mode,
+      connected: Boolean(oauth),
+      merchantId: oauth?.merchantId ?? config.merchantId ?? null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/clover/connection -> forget stored OAuth tokens (local only).
+ * Does not revoke the grant on Clover's side; it just drops our copy so the
+ * app falls back to test-token mode.
+ */
+router.delete("/connection", async (_req, res, next) => {
+  try {
+    await clearCredentials();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /** POST /api/clover/orders -> create a new open order for the merchant. */

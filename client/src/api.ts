@@ -83,6 +83,29 @@ export async function checkout(input: CheckoutInput): Promise<CheckoutResponse> 
   return body as CheckoutResponse;
 }
 
+export type ConnectionMode = "oauth" | "test" | "none";
+
+export interface ConnectionInfo {
+  mode: ConnectionMode;
+  connected: boolean;
+  merchantId: string | null;
+}
+
+export async function fetchConnection(): Promise<ConnectionInfo> {
+  const res = await fetch("/api/clover/connection");
+  if (!res.ok) {
+    throw new ApiError(`Failed to load connection (${res.status})`, res.status);
+  }
+  return (await parseJson(res)) as ConnectionInfo;
+}
+
+export async function disconnect(): Promise<void> {
+  const res = await fetch("/api/clover/connection", { method: "DELETE" });
+  if (!res.ok) {
+    throw new ApiError(`Failed to disconnect (${res.status})`, res.status);
+  }
+}
+
 export async function fetchTransactions(): Promise<Transaction[]> {
   const res = await fetch("/api/transactions");
   if (!res.ok) {
